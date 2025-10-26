@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, Index
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, Index, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.session import Base
@@ -42,10 +42,24 @@ class ExpertItem(Base):
         Text, nullable=False
     )  # Source URL for attribution
 
+    # Article metadata
+    title: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # Article/video/podcast title
+
+    summary: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # Brief summary or excerpt
+
     # Match reference (nullable for general articles)
     match_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=True, index=True
     )
+
+    # Match tags for flexible matching (team names, tournaments, rounds)
+    match_tags: Mapped[dict | None] = mapped_column(
+        JSON, nullable=True
+    )  # e.g., {"teams": ["Liverpool", "Arsenal"], "tournament": "Premier League", "round": 10}
 
     # Prediction
     pick: Mapped[str] = mapped_column(

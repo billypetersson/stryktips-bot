@@ -10,10 +10,13 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
+
+from src.providers.experts.cache import ProviderCache
 
 logger = logging.getLogger(__name__)
 
