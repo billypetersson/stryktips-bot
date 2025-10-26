@@ -62,8 +62,55 @@
 
                 {% if match.analysis.expert_summary %}
                 <div class="expert-section">
-                    <h4>Expertkonsensus</h4>
+                    <h4>Expertkonsensus (AI-sammanfattning)</h4>
                     <p>{{ match.analysis.expert_summary }}</p>
+                </div>
+                {% endif %}
+
+                {% if expert_consensus and expert_consensus.get(match.id) %}
+                <div class="expert-consensus-section">
+                    <h4>📊 Experttips från svenska källor</h4>
+                    {% set consensus = expert_consensus[match.id] %}
+
+                    <div class="consensus-summary">
+                        <div class="consensus-pick">
+                            <span class="consensus-label">Konsensus:</span>
+                            <span class="pick-badge pick-{{ consensus.consensus_pick }}">
+                                {{ consensus.consensus_pick }}
+                            </span>
+                            <span class="consensus-confidence">
+                                ({{ (consensus.confidence * 100)|int }}% enighet, {{ consensus.prediction_count }} experter)
+                            </span>
+                        </div>
+
+                        <div class="pick-distribution">
+                            <strong>Fördelning:</strong>
+                            {% for pick, count in consensus.pick_distribution.items() %}
+                                <span class="dist-item">
+                                    <span class="dist-pick">{{ pick }}</span>: {{ count }} st
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <details class="expert-details">
+                        <summary>Visa alla experttips ({{ consensus.prediction_count }} st)</summary>
+                        <div class="sources-list">
+                            {% for source, preds in consensus.source_breakdown.items() %}
+                                <div class="source-group">
+                                    <strong class="source-name">{{ source }}:</strong>
+                                    {% for pred in preds %}
+                                        <span class="expert-pick">
+                                            <span class="pick-value">{{ pred.pick }}</span>
+                                            {% if pred.author %}
+                                                <span class="expert-author">({{ pred.author }})</span>
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </details>
                 </div>
                 {% endif %}
 
@@ -130,4 +177,140 @@
 <div class="back-link">
     <a href="/">&larr; Tillbaka till start</a>
 </div>
+
+<style>
+/* Expert consensus styling */
+.expert-consensus-section {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border-left: 4px solid #2563eb;
+}
+
+.expert-consensus-section h4 {
+    margin-top: 0;
+    color: #1e40af;
+}
+
+.consensus-summary {
+    margin-bottom: 1rem;
+}
+
+.consensus-pick {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.consensus-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.pick-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.pick-badge.pick-1 { background: #dcfce7; color: #166534; }
+.pick-badge.pick-X { background: #fef3c7; color: #92400e; }
+.pick-badge.pick-2 { background: #fee2e2; color: #991b1b; }
+.pick-badge.pick-1X { background: #dbeafe; color: #1e40af; }
+.pick-badge.pick-X2 { background: #fce7f3; color: #9f1239; }
+.pick-badge.pick-12 { background: #e0e7ff; color: #3730a3; }
+
+.consensus-confidence {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.pick-distribution {
+    padding: 0.75rem;
+    background: white;
+    border-radius: 6px;
+}
+
+.dist-item {
+    display: inline-block;
+    margin-right: 1rem;
+    padding: 0.25rem 0.5rem;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.dist-pick {
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.expert-details {
+    margin-top: 1rem;
+}
+
+.expert-details summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: #2563eb;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 6px;
+    user-select: none;
+}
+
+.expert-details summary:hover {
+    background: #f3f4f6;
+}
+
+.sources-list {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 6px;
+}
+
+.source-group {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.source-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.source-name {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #1e40af;
+}
+
+.expert-pick {
+    display: inline-block;
+    margin-right: 0.75rem;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.pick-value {
+    font-weight: bold;
+    color: #2563eb;
+    margin-right: 0.25rem;
+}
+
+.expert-author {
+    color: #666;
+    font-size: 0.85rem;
+}
+</style>
+
 {% endblock %}

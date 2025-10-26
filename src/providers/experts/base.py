@@ -9,7 +9,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 import httpx
@@ -245,9 +245,80 @@ class BaseExpertProvider(ABC):
         Returns:
             Datetime object or None if parsing failed
         """
-        # TODO: Implement Swedish date parsing
-        # For now, return current time
-        logger.warning(f"Date parsing not fully implemented for: {date_str}")
+        if not date_str:
+            return datetime.utcnow()
+
+        date_str = date_str.strip()
+
+        # Swedish month names
+        swedish_months = {
+            'januari': 1, 'jan': 1,
+            'februari': 2, 'feb': 2,
+            'mars': 3, 'mar': 3,
+            'april': 4, 'apr': 4,
+            'maj': 5,
+            'juni': 6, 'jun': 6,
+            'juli': 7, 'jul': 7,
+            'augusti': 8, 'aug': 8,
+            'september': 9, 'sep': 9,
+            'oktober': 10, 'okt': 10,
+            'november': 11, 'nov': 11,
+            'december': 12, 'dec': 12,
+        }
+
+        # Relative dates
+        date_lower = date_str.lower()
+        if date_lower in ['idag', 'i dag']:
+            return datetime.utcnow().replace(hour=12, minute=0, second=0, microsecond=0)
+        elif date_lower in ['igår', 'i går']:
+            return (datetime.utcnow() - timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+        elif date_lower in ['i förrgår', 'i forgår', 'förrgår']:
+            return (datetime.utcnow() - timedelta(days=2)).replace(hour=12, minute=0, second=0, microsecond=0)
+
+        # Try ISO format first (2025-10-26)
+        try:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            pass
+
+        # Try Swedish format: "26 oktober 2025" or "26 okt 2025"
+        # Pattern: day month year
+        import re
+        pattern = r'(\d{1,2})\s+(\w+)\s+(\d{4})'
+        match = re.search(pattern, date_str, re.IGNORECASE)
+        if match:
+            day = int(match.group(1))
+            month_str = match.group(2).lower()
+            year = int(match.group(3))
+
+            month = swedish_months.get(month_str)
+            if month:
+                try:
+                    return datetime(year, month, day, 12, 0, 0)
+                except ValueError as e:
+                    logger.warning(f"Invalid date components: {day}/{month}/{year}: {e}")
+
+        # Try format: "26/10 2025" or "26/10-2025"
+        pattern2 = r'(\d{1,2})[/\-](\d{1,2})[\s\-]*(\d{4})'
+        match2 = re.search(pattern2, date_str)
+        if match2:
+            day = int(match2.group(1))
+            month = int(match2.group(2))
+            year = int(match2.group(3))
+            try:
+                return datetime(year, month, day, 12, 0, 0)
+            except ValueError as e:
+                logger.warning(f"Invalid date: {day}/{month}/{year}: {e}")
+
+        # Try relative days: "För 2 dagar sedan", "3 dagar sedan"
+        pattern3 = r'(?:för\s+)?(\d+)\s+dag(?:ar)?\s+sedan'
+        match3 = re.search(pattern3, date_lower)
+        if match3:
+            days_ago = int(match3.group(1))
+            return (datetime.utcnow() - timedelta(days=days_ago)).replace(hour=12, minute=0, second=0, microsecond=0)
+
+        # If all parsing fails, return current time
+        logger.warning(f"Could not parse Swedish date: '{date_str}', using current time")
         return datetime.utcnow()
 
     @abstractmethod

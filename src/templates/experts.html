@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}Experttips - Stryktips Bot{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h2>📊 Experttips från svenska källor</h2>
+    <p>Samlad expertis från Rekatochklart, Aftonbladet, Expressen, Stryktipspodden med flera</p>
+</div>
+
+<!-- Filter section -->
+<section class="filters">
+    <form method="get" action="/experts" class="filter-form">
+        <label for="source">Filtrera per källa:</label>
+        <select name="source" id="source" onchange="this.form.submit()">
+            <option value="">Alla källor</option>
+            {% for src in sources %}
+                <option value="{{ src }}" {% if src == selected_source %}selected{% endif %}>
+                    {{ src }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</section>
+
+<!-- Statistics summary -->
+<section class="expert-stats">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ predictions|length }}</div>
+            <div class="stat-label">Totalt tips</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ sources|length }}</div>
+            <div class="stat-label">Källor</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">
+                {% set unique_authors = predictions|map(attribute='author')|select|unique|list %}
+                {{ unique_authors|length }}
+            </div>
+            <div class="stat-label">Experter</div>
+        </div>
+    </div>
+</section>
+
+<!-- Predictions list -->
+<section class="expert-predictions">
+    <h3>Senaste tipsen</h3>
+
+    {% if predictions %}
+        <div class="predictions-list">
+            {% for pred in predictions %}
+                <div class="prediction-card">
+                    <div class="prediction-header">
+                        <div class="prediction-meta">
+                            <span class="source-badge source-{{ pred.source|lower|replace(' ', '-') }}">
+                                {{ pred.source }}
+                            </span>
+                            {% if pred.author %}
+                                <span class="author">av {{ pred.author }}</span>
+                            {% endif %}
+                            <span class="date">
+                                {{ pred.published_at.strftime('%Y-%m-%d %H:%M') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="prediction-body">
+                        {% if pred.match %}
+                            <div class="match-info">
+                                <span class="match-number">{{ pred.match.match_number }}.</span>
+                                <span class="teams">
+                                    {{ pred.match.home_team }} - {{ pred.match.away_team }}
+                                </span>
+                            </div>
+                        {% endif %}
+
+                        <div class="prediction-pick">
+                            <span class="pick-label">Tips:</span>
+                            <span class="pick-value pick-{{ pred.pick }}">{{ pred.pick }}</span>
+                            {% if pred.confidence %}
+                                <span class="confidence">({{ pred.confidence }})</span>
+                            {% endif %}
+                        </div>
+
+                        {% if pred.rationale %}
+                            <div class="prediction-rationale">
+                                <p>{{ pred.rationale }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="prediction-footer">
+                        <a href="{{ pred.url }}" target="_blank" rel="noopener" class="source-link">
+                            Läs mer ↗
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-predictions">
+            <p>Inga experttips hittades ännu.</p>
+            <p class="hint">Experttips hämtas automatiskt från olika svenska källor. Kom tillbaka senare!</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Help section -->
+<section class="expert-help">
+    <h4>Om experttipsen</h4>
+    <div class="help-content">
+        <p><strong>Källor:</strong> Vi samlar tips från flera svenska Stryktipskällor:</p>
+        <ul>
+            <li><strong>Rekatochklart</strong> - Populär Stryktipsblogg</li>
+            <li><strong>Aftonbladet</strong> - Sportbladet Stryktips</li>
+            <li><strong>Expressen</strong> - Tips & Odds</li>
+            <li><strong>Stryktipspodden</strong> - Podcast med expertanalys</li>
+            <li><strong>Tipsmedoss</strong> - Spelblogg</li>
+            <li><strong>Spelbloggare</strong> - Plattform med flera bloggare</li>
+        </ul>
+
+        <p><strong>Användning:</strong></p>
+        <ul>
+            <li>Tips uppdateras automatiskt från källorna</li>
+            <li>Filtrera per källa för att se specifika experters tips</li>
+            <li>Kombinera med vår värdeanalys för bästa resultat</li>
+            <li>Klicka på "Läs mer" för att se original-artikel</li>
+        </ul>
+
+        <p class="disclaimer-small">
+            <strong>OBS:</strong> Experttips är experternas egna åsikter. Använd alltid eget omdöme.
+        </p>
+    </div>
+</section>
+
+<style>
+.filters {
+    background: #f5f5f5;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.filter-form {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filter-form label {
+    font-weight: 600;
+}
+
+.filter-form select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    min-width: 200px;
+}
+
+.expert-stats {
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #2563eb;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.expert-predictions h3 {
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+
+.predictions-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.prediction-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s;
+}
+
+.prediction-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.prediction-header {
+    margin-bottom: 1rem;
+}
+
+.prediction-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.source-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: #2563eb;
+    color: white;
+}
+
+.source-rekatochklart { background: #f59e0b; }
+.source-aftonbladet { background: #ef4444; }
+.source-expressen { background: #dc2626; }
+.source-stryktipspodden { background: #8b5cf6; }
+.source-tipsmedoss { background: #10b981; }
+.source-spelbloggare { background: #06b6d4; }
+
+.author {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.date {
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.prediction-body {
+    margin-bottom: 1rem;
+}
+
+.match-info {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.match-number {
+    font-weight: bold;
+    color: #666;
+}
+
+.teams {
+    font-weight: 600;
+    color: #333;
+}
+
+.prediction-pick {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.pick-label {
+    font-weight: 600;
+    color: #666;
+}
+
+.pick-value {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 1.2rem;
+    background: #e0e0e0;
+    color: #333;
+}
+
+.pick-1 { background: #dcfce7; color: #166534; }
+.pick-X { background: #fef3c7; color: #92400e; }
+.pick-2 { background: #fee2e2; color: #991b1b; }
+.pick-1X { background: #dbeafe; color: #1e40af; }
+.pick-X2 { background: #fce7f3; color: #9f1239; }
+.pick-12 { background: #e0e7ff; color: #3730a3; }
+
+.confidence {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.prediction-rationale {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+.prediction-rationale p {
+    margin: 0;
+    color: #555;
+    line-height: 1.6;
+}
+
+.prediction-footer {
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.source-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.source-link:hover {
+    text-decoration: underline;
+}
+
+.no-predictions {
+    text-align: center;
+    padding: 3rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.no-predictions p {
+    margin: 0.5rem 0;
+    color: #666;
+}
+
+.hint {
+    font-size: 0.9rem;
+    color: #999;
+}
+
+.expert-help {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border-left: 4px solid #2563eb;
+}
+
+.expert-help h4 {
+    margin-top: 0;
+    color: #1e40af;
+}
+
+.help-content ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.help-content li {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.disclaimer-small {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #fef3c7;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-form select {
+        width: 100%;
+    }
+
+    .prediction-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

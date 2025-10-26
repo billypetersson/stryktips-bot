@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stryktips-experts-fetcher
+  namespace: stryktips
+  labels:
+    app: stryktips-bot
+    component: cronjob-experts
+spec:
+  # Schedule: Daily at 08:00 Stockholm time (after coupon is typically published)
+  # This fetches expert predictions once per day
+  schedule: "0 8 * * *"
+
+  # Timezone support (requires K8s 1.25+)
+  timeZone: "Europe/Stockholm"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    metadata:
+      labels:
+        app: stryktips-bot
+        component: cronjob-experts
+    spec:
+      template:
+        metadata:
+          labels:
+            app: stryktips-bot
+            component: cronjob-experts
+        spec:
+          containers:
+          - name: experts-fetcher
+            image: localhost:30500/stryktips-bot:latest
+            imagePullPolicy: IfNotPresent
+
+            # Run the expert predictions fetch job
+            command: ["python", "-m", "src.jobs.fetch_expert_predictions"]
+
+            envFrom:
+            - configMapRef:
+                name: stryktips-config
+            - secretRef:
+                name: stryktips-secrets
+
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+
+          restartPolicy: OnFailure
