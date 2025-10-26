@@ -29,11 +29,14 @@ class ExpertPrediction:
     author: Optional[str]
     published_at: datetime
     url: str
+    title: Optional[str]  # Article/video/podcast title
+    summary: Optional[str]  # Brief summary or excerpt
     match_home_team: Optional[str]  # For matching to our database
     match_away_team: Optional[str]  # For matching to our database
     pick: str  # '1', 'X', '2', '1X', '12', 'X2'
     rationale: Optional[str]
     confidence: Optional[str]
+    match_tags: Optional[dict]  # Flexible tags for matching
     raw_data: Optional[str]
 
 
@@ -53,6 +56,8 @@ class BaseExpertProvider(ABC):
         rate_limit_delay: float = 2.0,  # Seconds between requests
         timeout: int = 30,
         max_retries: int = 3,
+        cache_ttl_hours: int = 6,  # Cache TTL in hours
+        enable_cache: bool = True,  # Enable caching by default
     ):
         """Initialize the provider.
 
@@ -61,6 +66,8 @@ class BaseExpertProvider(ABC):
             rate_limit_delay: Minimum seconds between requests
             timeout: HTTP request timeout in seconds
             max_retries: Maximum number of retries for failed requests
+            cache_ttl_hours: Cache TTL in hours (default 6)
+            enable_cache: Whether to enable caching (default True)
         """
         self.source_name = source_name
         self.rate_limit_delay = rate_limit_delay
@@ -68,6 +75,16 @@ class BaseExpertProvider(ABC):
         self.max_retries = max_retries
         self._last_request_time: Optional[float] = None
         self._request_lock = asyncio.Lock()
+
+        # Initialize cache
+        self.enable_cache = enable_cache
+        if self.enable_cache:
+            self.cache = ProviderCache(
+                provider_name=source_name,
+                default_ttl_hours=cache_ttl_hours
+            )
+        else:
+            self.cache = None
 
     async def _rate_limit(self) -> None:
         """Enforce rate limiting between requests."""
@@ -99,15 +116,22 @@ class BaseExpertProvider(ABC):
             "Upgrade-Insecure-Requests": "1",
         }
 
-    async def _fetch_html(self, url: str) -> Optional[str]:
-        """Fetch HTML content from a URL with rate limiting and retries.
+    async def _fetch_html(self, url: str, bypass_cache: bool = False) -> Optional[str]:
+        """Fetch HTML content from a URL with rate limiting, caching, and retries.
 
         Args:
             url: URL to fetch
+            bypass_cache: If True, skip cache and force fresh fetch
 
         Returns:
             HTML content as string, or None if all retries failed
         """
+        # Check cache first (if enabled and not bypassed)
+        if self.enable_cache and self.cache and not bypass_cache:
+            cached = self.cache.get(url)
+            if cached:
+                return cached['content']
+
         await self._rate_limit()
 
         for attempt in range(self.max_retries):
@@ -120,6 +144,11 @@ class BaseExpertProvider(ABC):
                         logger.info(
                             f"Successfully fetched {url} for {self.source_name}"
                         )
+
+                        # Cache the response
+                        if self.enable_cache and self.cache:
+                            self.cache.set(url, html)
+
                         return html
                     elif response.status_code == 404:
                         logger.warning(
