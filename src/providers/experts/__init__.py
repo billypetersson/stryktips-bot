@@ -1,6 +1,6 @@
 """Expert prediction providers for Stryktips Bot.
 
-Providers for scraping and parsing expert predictions from various Swedish sources:
+Providers for scraping and parsing expert predictions from various sources:
 
 Swedish Sources:
 - Rekatochklart - Popular betting blog
@@ -13,6 +13,17 @@ Swedish Sources:
 - Expressen Tips & Odds - Major sports media
 - Tipsmedoss - Betting blog
 - Spelbloggare - Betting blog platform
+
+International Sources:
+- The Guardian - Football Weekly podcast & articles
+- The Athletic - Premium sports media
+- Opta Analyst - Data-driven predictions
+- The Totally Football Show - James Richardson's podcast
+- Tifo Football - Tactical analysis
+- Sky Sports - Neville & Carragher MNF analysis
+- BBC Match of the Day - Premier League analysis
+- The Coaches' Voice - Professional coaches' analysis
+- The Times - Premium sports journalism
 """
 
 from src.providers.experts.base import BaseExpertProvider, ExpertPrediction
@@ -30,6 +41,16 @@ from src.providers.experts.generic_blog import (
     TipsmedossProvider,
     SpelbloggareProvider,
 )
+# International providers
+from src.providers.experts.guardian_football import GuardianFootballProvider
+from src.providers.experts.the_athletic import TheAthleticProvider
+from src.providers.experts.opta_analyst import OptaAnalystProvider
+from src.providers.experts.totally_football_show import TotallyFootballShowProvider
+from src.providers.experts.tifo_football import TifoFootballProvider
+from src.providers.experts.sky_sports import SkySportsProvider
+from src.providers.experts.bbc_motd import BBCMatchOfTheDayProvider
+from src.providers.experts.coaches_voice import CoachesVoiceProvider
+from src.providers.experts.the_times import TheTimesProvider
 
 __all__ = [
     "BaseExpertProvider",
@@ -48,4 +69,14 @@ __all__ = [
     "SpelbloggareProvider",
     # Generic
     "GenericBlogProvider",
+    # International providers
+    "GuardianFootballProvider",
+    "TheAthleticProvider",
+    "OptaAnalystProvider",
+    "TotallyFootballShowProvider",
+    "TifoFootballProvider",
+    "SkySportsProvider",
+    "BBCMatchOfTheDayProvider",
+    "CoachesVoiceProvider",
+    "TheTimesProvider",
 ]

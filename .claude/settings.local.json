@@ -42,7 +42,10 @@
       "Bash(sudo k3s kubectl get pods -n stryktips)",
       "Bash(printf:*)",
       "Bash(sudo k3s kubectl get:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(timeout 60 python:*)",
+      "Bash(timeout 15 python:*)",
+      "Bash(timeout 30 python:*)"
     ],
     "deny": [],
     "ask": []

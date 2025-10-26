@@ -178,50 +178,52 @@ class SvenskaSpelScraper(BaseScraper):
         """
         Parse a single event/match from API response.
 
-        Expected structure (to be verified):
+        Real structure from Svenska Spel API:
         {
             "eventNumber": int,
-            "homeTeam": {"name": str, ...},
-            "awayTeam": {"name": str, ...},
-            "startTime": str (ISO datetime),
-            "distribution": {"home": float, "draw": float, "away": float},
+            "match": {
+                "participants": [
+                    {"type": "home", "name": str, ...},
+                    {"type": "away", "name": str, ...}
+                ],
+                "matchStart": str (ISO datetime),
+                ...
+            },
+            "svenskaFolket": {
+                "one": str (percentage),
+                "x": str (percentage),
+                "two": str (percentage)
+            },
             ...
         }
         """
         try:
-            # Extract team names
-            home_team = event.get("homeTeam") or event.get("home")
-            away_team = event.get("awayTeam") or event.get("away")
+            # Extract match data
+            match = event.get("match", {})
+            participants = match.get("participants", [])
 
-            # Team names might be nested in dict or direct string
-            if isinstance(home_team, dict):
-                home_team_name = home_team.get("name") or home_team.get("teamName") or str(home_team)
-            else:
-                home_team_name = str(home_team) if home_team else "Unknown"
+            # Extract team names from participants
+            home_team_name = "Unknown"
+            away_team_name = "Unknown"
 
-            if isinstance(away_team, dict):
-                away_team_name = away_team.get("name") or away_team.get("teamName") or str(away_team)
-            else:
-                away_team_name = str(away_team) if away_team else "Unknown"
+            for participant in participants:
+                if participant.get("type") == "home":
+                    home_team_name = participant.get("name", "Unknown")
+                elif participant.get("type") == "away":
+                    away_team_name = participant.get("name", "Unknown")
 
             # Extract kickoff time
-            kickoff_str = event.get("startTime") or event.get("kickoffTime") or event.get("matchTime")
+            kickoff_str = match.get("matchStart")
             if kickoff_str:
                 kickoff_time = date_parser.parse(kickoff_str).isoformat()
             else:
                 kickoff_time = datetime.now().isoformat()
 
-            # Extract distribution (streckprocent)
-            distribution = event.get("distribution") or event.get("outcome") or {}
-
-            # Distribution might be in various formats
-            if isinstance(distribution, dict):
-                home_pct = distribution.get("home") or distribution.get("1") or distribution.get("H")
-                draw_pct = distribution.get("draw") or distribution.get("X") or distribution.get("D")
-                away_pct = distribution.get("away") or distribution.get("2") or distribution.get("A")
-            else:
-                # No distribution available
-                home_pct = draw_pct = away_pct = None
+            # Extract distribution (streckprocent) from svenskaFolket
+            svenska_folket = event.get("svenskaFolket", {})
+            home_pct = svenska_folket.get("one")
+            draw_pct = svenska_folket.get("x")
+            away_pct = svenska_folket.get("two")
 
             # Convert to float if string
             def to_float(val):
