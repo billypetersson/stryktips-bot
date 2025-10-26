@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Kupong Vecka {{ coupon.week_number }} - Stryktips Bot{% endblock %}
+
+{% block content %}
+<div class="coupon-header">
+    <h2>Stryktipskupong Vecka {{ coupon.week_number }}, {{ coupon.year }}</h2>
+    <p>Dragning: {{ coupon.draw_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% if coupon.jackpot_amount %}
+        <p class="jackpot">Jackpot: {{ "{:,}".format(coupon.jackpot_amount).replace(',', ' ') }} kr</p>
+    {% endif %}
+</div>
+
+<div class="coupon-actions">
+    <a href="/analysis/{{ coupon.id }}" class="btn btn-primary">Visa detaljerad analys</a>
+</div>
+
+<section class="matches-list">
+    <h3>Matcher</h3>
+    {% for match in coupon.matches %}
+        <div class="match-row">
+            <div class="match-info">
+                <span class="match-number">{{ match.match_number }}</span>
+                <div class="match-teams">
+                    <span class="home-team">{{ match.home_team }}</span>
+                    <span class="vs">-</span>
+                    <span class="away-team">{{ match.away_team }}</span>
+                </div>
+                <span class="kickoff">{{ match.kickoff_time.strftime('%d/%m %H:%M') }}</span>
+            </div>
+
+            {% if match.home_percentage %}
+            <div class="distribution">
+                <div class="dist-label">Streck:</div>
+                <div class="dist-values">
+                    <span>1: {{ "%.0f"|format(match.home_percentage) }}%</span>
+                    <span>X: {{ "%.0f"|format(match.draw_percentage) }}%</span>
+                    <span>2: {{ "%.0f"|format(match.away_percentage) }}%</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if match.analysis %}
+            <div class="analysis-summary">
+                <div class="recommendation">
+                    <strong>{{ match.analysis.recommended_signs }}</strong>
+                </div>
+                {% if match.analysis.home_value %}
+                <div class="values">
+                    <span class="{% if match.analysis.home_value >= 1.05 %}value-good{% endif %}">
+                        V1: {{ "%.2f"|format(match.analysis.home_value) }}
+                    </span>
+                    <span class="{% if match.analysis.draw_value >= 1.05 %}value-good{% endif %}">
+                        VX: {{ "%.2f"|format(match.analysis.draw_value) }}
+                    </span>
+                    <span class="{% if match.analysis.away_value >= 1.05 %}value-good{% endif %}">
+                        V2: {{ "%.2f"|format(match.analysis.away_value) }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</section>
+
+{% if suggested_rows %}
+<section class="suggested-rows">
+    <h3>Föreslagna rader</h3>
+    {% for row in suggested_rows %}
+        <div class="row-card">
+            <div class="row-header">
+                <h4>Rad {{ loop.index }}</h4>
+                <span class="expected-value">EV: {{ "%.2f"|format(row.expected_value) }}</span>
+            </div>
+            <div class="row-info">
+                <span>Helgarderingar: {{ row.half_cover_count }}</span>
+                <span>Kostnad: {{ row.cost_factor }}x</span>
+            </div>
+            <div class="row-data">
+                {% for match_num in range(1, 14) %}
+                    <span class="sign {% if row.row_data[match_num|string]|length > 1 %}half-cover{% endif %}">
+                        {{ match_num }}: {{ row.row_data[match_num|string] }}
+                    </span>
+                {% endfor %}
+            </div>
+            <p class="row-reasoning">{{ row.reasoning }}</p>
+        </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<div class="back-link">
+    <a href="/">&larr; Tillbaka till start</a>
+</div>
+{% endblock %}

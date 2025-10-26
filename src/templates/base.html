@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Stryktips Bot{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">⚽ Stryktips Bot</h1>
+            <ul class="nav-links">
+                <li><a href="/">Hem</a></li>
+                <li><a href="#" hx-post="/refresh" hx-target="#coupon-content" hx-swap="innerHTML">
+                    Uppdatera
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Stryktips Bot - Automatisk värdeanalys</p>
+            <p class="disclaimer">
+                OBS: Detta är ett verktyg för analys. Spela ansvarsfullt och satsa aldrig mer än du har råd att förlora.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

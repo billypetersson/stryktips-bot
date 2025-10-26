@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Stryktips Bot - Hem{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h2>Välkommen till Stryktips Bot</h2>
+    <p>Automatisk analys av veckans Stryktipskupong med odds, expertutlåtanden och värdeberäkning</p>
+</div>
+
+<div id="coupon-content">
+    {% if coupon %}
+        <section class="coupon-summary">
+            <h3>Vecka {{ coupon.week_number }}, {{ coupon.year }}</h3>
+            <p>Dragning: {{ coupon.draw_date.strftime('%Y-%m-%d %H:%M') }}</p>
+            {% if coupon.jackpot_amount %}
+                <p class="jackpot">Jackpot: {{ "{:,}".format(coupon.jackpot_amount).replace(',', ' ') }} kr</p>
+            {% endif %}
+
+            <div class="action-buttons">
+                <a href="/coupon/{{ coupon.id }}" class="btn btn-primary">Visa kupong</a>
+                <a href="/analysis/{{ coupon.id }}" class="btn btn-secondary">Visa analys</a>
+            </div>
+        </section>
+
+        <section class="matches-preview">
+            <h4>Matcher ({{ coupon.matches|length }})</h4>
+            <div class="matches-grid">
+                {% for match in coupon.matches[:5] %}
+                    <div class="match-card">
+                        <div class="match-number">{{ match.match_number }}</div>
+                        <div class="match-teams">
+                            <span class="home-team">{{ match.home_team }}</span>
+                            <span class="vs">-</span>
+                            <span class="away-team">{{ match.away_team }}</span>
+                        </div>
+                        {% if match.analysis %}
+                            <div class="recommendation">
+                                Rekommendation: <strong>{{ match.analysis.recommended_signs }}</strong>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            {% if coupon.matches|length > 5 %}
+                <p class="more-matches">... och {{ coupon.matches|length - 5 }} matcher till</p>
+            {% endif %}
+        </section>
+    {% else %}
+        <section class="no-coupon">
+            <p>Ingen aktiv kupong hittades.</p>
+            <button hx-post="/refresh" hx-target="#coupon-content" class="btn btn-primary">
+                Hämta kupong
+            </button>
+        </section>
+    {% endif %}
+</div>
+
+<section class="info">
+    <h3>Hur fungerar det?</h3>
+    <div class="info-grid">
+        <div class="info-card">
+            <h4>📊 Oddsjämförelse</h4>
+            <p>Hämtar odds från flera bookmakers och beräknar verkliga sannolikheter</p>
+        </div>
+        <div class="info-card">
+            <h4>📈 Värdeanalys</h4>
+            <p>Jämför odds med streckprocent för att hitta värdetecken</p>
+        </div>
+        <div class="info-card">
+            <h4>👥 Expertkonsensus</h4>
+            <p>Samlar och sammanfattar tips från svenska sportexperter</p>
+        </div>
+        <div class="info-card">
+            <h4>🎯 Radförslag</h4>
+            <p>Genererar optimala rader med max 2 helgarderingar</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stryktips-updater
+  namespace: stryktips
+  labels:
+    app: stryktips-bot
+    component: cronjob
+spec:
+  # Schedule: Every Sunday at 20:00 Stockholm time
+  # Using Europe/Stockholm timezone to handle summer/winter time automatically
+  # If your k3s doesn't support timeZone (requires K8s 1.25+), use: "0 19 * * 0" for 19:00 UTC
+  schedule: "0 20 * * 0"
+
+  # Timezone support (requires K8s 1.25+)
+  # Most k3s installations support this - if not, adjust schedule to UTC
+  timeZone: "Europe/Stockholm"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    metadata:
+      labels:
+        app: stryktips-bot
+        component: cronjob
+    spec:
+      template:
+        metadata:
+          labels:
+            app: stryktips-bot
+            component: cronjob
+        spec:
+          containers:
+          - name: updater
+            image: localhost:30500/stryktips-bot:latest
+            imagePullPolicy: IfNotPresent
+
+            # Override command to run the update job instead of web server
+            command: ["python", "-m", "src.jobs.update_coupon"]
+
+            envFrom:
+            - configMapRef:
+                name: stryktips-config
+            - secretRef:
+                name: stryktips-secrets
+
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+
+          restartPolicy: OnFailure

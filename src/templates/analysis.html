@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Analys Vecka {{ coupon.week_number }} - Stryktips Bot{% endblock %}
+
+{% block content %}
+<div class="analysis-header">
+    <h2>Detaljerad Analys - Vecka {{ coupon.week_number }}, {{ coupon.year }}</h2>
+    <a href="/coupon/{{ coupon.id }}" class="btn btn-secondary">Visa kupong</a>
+</div>
+
+<section class="matches-analysis">
+    {% for match in coupon.matches %}
+        <div class="match-analysis-card">
+            <div class="match-header">
+                <span class="match-number">{{ match.match_number }}</span>
+                <h3>{{ match.home_team }} - {{ match.away_team }}</h3>
+                <span class="kickoff">{{ match.kickoff_time.strftime('%d/%m %H:%M') }}</span>
+            </div>
+
+            {% if match.analysis %}
+            <div class="analysis-details">
+                <div class="value-section">
+                    <h4>Värdeanalys</h4>
+                    <table class="value-table">
+                        <thead>
+                            <tr>
+                                <th>Tecken</th>
+                                <th>Odds</th>
+                                <th>Sannolikhet</th>
+                                <th>Streck</th>
+                                <th>Värde</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="{% if match.analysis.home_value and match.analysis.home_value >= 1.05 %}value-good{% endif %}">
+                                <td><strong>1</strong></td>
+                                <td>{{ "%.2f"|format(match.analysis.avg_home_odds) }}</td>
+                                <td>{{ "%.1f"|format(match.analysis.true_home_prob * 100) }}%</td>
+                                <td>{{ "%.0f"|format(match.home_percentage) }}%</td>
+                                <td><strong>{{ "%.2f"|format(match.analysis.home_value) if match.analysis.home_value else "-" }}</strong></td>
+                            </tr>
+                            <tr class="{% if match.analysis.draw_value and match.analysis.draw_value >= 1.05 %}value-good{% endif %}">
+                                <td><strong>X</strong></td>
+                                <td>{{ "%.2f"|format(match.analysis.avg_draw_odds) }}</td>
+                                <td>{{ "%.1f"|format(match.analysis.true_draw_prob * 100) }}%</td>
+                                <td>{{ "%.0f"|format(match.draw_percentage) }}%</td>
+                                <td><strong>{{ "%.2f"|format(match.analysis.draw_value) if match.analysis.draw_value else "-" }}</strong></td>
+                            </tr>
+                            <tr class="{% if match.analysis.away_value and match.analysis.away_value >= 1.05 %}value-good{% endif %}">
+                                <td><strong>2</strong></td>
+                                <td>{{ "%.2f"|format(match.analysis.avg_away_odds) }}</td>
+                                <td>{{ "%.1f"|format(match.analysis.true_away_prob * 100) }}%</td>
+                                <td>{{ "%.0f"|format(match.away_percentage) }}%</td>
+                                <td><strong>{{ "%.2f"|format(match.analysis.away_value) if match.analysis.away_value else "-" }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="recommendation-box">
+                        <strong>Rekommendation:</strong> {{ match.analysis.recommended_signs }}
+                    </div>
+                </div>
+
+                {% if match.analysis.expert_summary %}
+                <div class="expert-section">
+                    <h4>Expertkonsensus</h4>
+                    <p>{{ match.analysis.expert_summary }}</p>
+                </div>
+                {% endif %}
+
+                {% if match.odds %}
+                <div class="odds-section">
+                    <h4>Odds från bookmakers</h4>
+                    <table class="odds-table">
+                        <thead>
+                            <tr>
+                                <th>Bookmaker</th>
+                                <th>1</th>
+                                <th>X</th>
+                                <th>2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for odds in match.odds %}
+                            <tr>
+                                <td>{{ odds.bookmaker }}</td>
+                                <td>{{ "%.2f"|format(odds.home_odds) }}</td>
+                                <td>{{ "%.2f"|format(odds.draw_odds) }}</td>
+                                <td>{{ "%.2f"|format(odds.away_odds) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+                <p class="no-analysis">Ingen analys tillgänglig för denna match.</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</section>
+
+{% if suggested_rows %}
+<section class="suggested-rows-detailed">
+    <h3>Föreslagna rader</h3>
+    {% for row in suggested_rows %}
+        <div class="row-card-detailed">
+            <div class="row-header">
+                <h4>Rad {{ loop.index }}</h4>
+                <div class="row-stats">
+                    <span class="ev">Förväntat värde: {{ "%.3f"|format(row.expected_value) }}</span>
+                    <span>Helgarderingar: {{ row.half_cover_count }}</span>
+                    <span>Kostnad: {{ row.cost_factor }}x basinvestering</span>
+                </div>
+            </div>
+            <div class="row-grid">
+                {% for match_num in range(1, 14) %}
+                    <div class="row-cell {% if row.row_data[match_num|string]|length > 1 %}half-cover{% endif %}">
+                        <span class="cell-number">{{ match_num }}</span>
+                        <span class="cell-sign">{{ row.row_data[match_num|string] }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+            <p class="row-reasoning">{{ row.reasoning }}</p>
+        </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<div class="back-link">
+    <a href="/">&larr; Tillbaka till start</a>
+</div>
+{% endblock %}

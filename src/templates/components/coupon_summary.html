@@ -1,0 +1,19 @@
+{% if coupon %}
+<section class="coupon-summary">
+    <h3>Vecka {{ coupon.week_number }}, {{ coupon.year }}</h3>
+    <p>Dragning: {{ coupon.draw_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% if coupon.jackpot_amount %}
+        <p class="jackpot">Jackpot: {{ "{:,}".format(coupon.jackpot_amount).replace(',', ' ') }} kr</p>
+    {% endif %}
+
+    <div class="action-buttons">
+        <a href="/coupon/{{ coupon.id }}" class="btn btn-primary">Visa kupong</a>
+        <a href="/analysis/{{ coupon.id }}" class="btn btn-secondary">Visa analys</a>
+    </div>
+    <p class="update-notice">✓ Uppdaterad just nu!</p>
+</section>
+{% else %}
+<section class="no-coupon">
+    <p>Kunde inte hämta kupong. Försök igen.</p>
+</section>
+{% endif %}
