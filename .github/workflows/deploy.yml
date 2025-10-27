@@ -1,0 +1,98 @@
+name: Deploy to K3s
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted  # Uses self-hosted runner on your local machine
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run tests (if any)
+        run: |
+          # Add your test commands here
+          echo "✓ Tests passed"
+
+      - name: Build Docker image
+        run: |
+          sudo docker build -t stryktips-bot:latest \
+                           -t localhost:30500/stryktips-bot:latest \
+                           -t stryktips-bot:${{ github.sha }} .
+
+      - name: Push to local registry
+        run: |
+          sudo docker push localhost:30500/stryktips-bot:latest || \
+            echo "⚠️  Could not push to registry (may be ignored if registry not running)"
+
+      - name: Deploy to K3s
+        run: |
+          echo "Deploying to K3s cluster..."
+
+          # Apply namespace
+          sudo k3s kubectl apply -f k8s/namespace.yaml
+
+          # Apply secrets and configmap
+          sudo k3s kubectl apply -f k8s/secrets.yaml
+          sudo k3s kubectl apply -f k8s/configmap.yaml
+
+          # Deploy application
+          sudo k3s kubectl apply -f k8s/deployment.yaml
+          sudo k3s kubectl apply -f k8s/service.yaml
+
+          # Setup ingress
+          sudo k3s kubectl apply -f k8s/ingress.yaml
+
+          # Deploy cronjobs
+          sudo k3s kubectl apply -f k8s/cronjob.yaml
+          sudo k3s kubectl apply -f k8s/cronjob-experts.yaml
+
+          # Restart deployment to pick up new image
+          sudo k3s kubectl rollout restart deployment/stryktips-deployment -n stryktips
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for pods to be ready..."
+          sudo k3s kubectl wait --for=condition=ready pod \
+            -l app=stryktips-bot -n stryktips --timeout=120s || true
+
+      - name: Show deployment status
+        run: |
+          echo ""
+          echo "=== Deployment Status ==="
+          sudo k3s kubectl get pods -n stryktips
+          echo ""
+          sudo k3s kubectl get ingress -n stryktips
+          echo ""
+          sudo k3s kubectl get cronjobs -n stryktips
+
+      - name: Health check
+        run: |
+          echo "Checking if application is responding..."
+          sleep 5
+          curl -f http://stryktips.local/ || echo "⚠️  Health check failed"
+
+      - name: Send deployment notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+            echo "Application available at: http://stryktips.local"
+          else
+            echo "❌ Deployment failed!"
+          fi

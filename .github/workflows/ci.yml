@@ -1,0 +1,91 @@
+name: CI - Test & Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main  # Main branch uses deploy.yml instead
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Lint with flake8
+        continue-on-error: true
+        run: |
+          pip install flake8
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings
+          flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run tests
+        run: |
+          # Add your test commands here when you have tests
+          echo "✓ No tests configured yet"
+          # pytest tests/ --cov=src --cov-report=xml
+
+      - name: Build Docker image (test)
+        run: |
+          docker build -t stryktips-bot:test .
+
+      - name: Check Docker image
+        run: |
+          docker images | grep stryktips-bot
+
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort mypy
+
+      - name: Check formatting with black
+        continue-on-error: true
+        run: |
+          black --check src/
+
+      - name: Check import sorting with isort
+        continue-on-error: true
+        run: |
+          isort --check-only src/
+
+      - name: Type check with mypy
+        continue-on-error: true
+        run: |
+          mypy src/ --ignore-missing-imports

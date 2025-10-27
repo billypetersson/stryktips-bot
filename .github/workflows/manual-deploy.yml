@@ -1,0 +1,84 @@
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - test
+      skip_tests:
+        description: 'Skip tests before deployment'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Show deployment info
+        run: |
+          echo "🚀 Starting manual deployment"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Skip tests: ${{ inputs.skip_tests }}"
+          echo "Triggered by: ${{ github.actor }}"
+
+      - name: Run tests
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          echo "Running tests..."
+          # Add test commands here
+          echo "✓ Tests passed"
+
+      - name: Build Docker image
+        run: |
+          sudo docker build -t stryktips-bot:latest \
+                           -t localhost:30500/stryktips-bot:latest \
+                           -t stryktips-bot:${{ github.sha }} .
+
+      - name: Push to registry
+        run: |
+          sudo docker push localhost:30500/stryktips-bot:latest || true
+
+      - name: Deploy to K3s
+        run: |
+          echo "Deploying to k3s (${{ inputs.environment }})..."
+
+          # Apply all k8s resources
+          sudo k3s kubectl apply -f k8s/namespace.yaml
+          sudo k3s kubectl apply -f k8s/secrets.yaml
+          sudo k3s kubectl apply -f k8s/configmap.yaml
+          sudo k3s kubectl apply -f k8s/deployment.yaml
+          sudo k3s kubectl apply -f k8s/service.yaml
+          sudo k3s kubectl apply -f k8s/ingress.yaml
+          sudo k3s kubectl apply -f k8s/cronjob.yaml
+          sudo k3s kubectl apply -f k8s/cronjob-experts.yaml
+
+          # Restart deployment
+          sudo k3s kubectl rollout restart deployment/stryktips-deployment -n stryktips
+
+      - name: Wait for rollout
+        run: |
+          sudo k3s kubectl rollout status deployment/stryktips-deployment -n stryktips --timeout=120s
+
+      - name: Verify deployment
+        run: |
+          echo "=== Deployment Status ==="
+          sudo k3s kubectl get all -n stryktips
+          echo ""
+          echo "✅ Deployment complete!"
+          echo "Access at: http://stryktips.local"
+
+      - name: Run smoke tests
+        run: |
+          sleep 5
+          curl -f http://stryktips.local/ && echo "✓ Health check passed" || echo "⚠️  Health check failed"

@@ -45,7 +45,13 @@
       "Bash(sqlite3:*)",
       "Bash(timeout 60 python:*)",
       "Bash(timeout 15 python:*)",
-      "Bash(timeout 30 python:*)"
+      "Bash(timeout 30 python:*)",
+      "Bash(kill:*)",
+      "Read(//tmp/**)",
+      "Bash(echo \"\n\n---\n✓ Servern fungerar och svarar!\")",
+      "Bash(echo:*)",
+      "Bash(pkill:*)",
+      "Bash(./deploy-to-k3s.sh:*)"
     ],
     "deny": [],
     "ask": []

@@ -62,3 +62,11 @@ k8s/secrets.yaml
 
 # Docker
 *.pid
+
+# GitHub Actions
+actions-runner/
+_work/
+
+# Cache
+data/cache/
+*.cache
